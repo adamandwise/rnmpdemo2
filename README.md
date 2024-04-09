@@ -1,2 +1,0 @@
-# rnmpdemo2
-testing
