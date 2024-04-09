@@ -1,117 +1,117 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
 import React from 'react';
-import type {PropsWithChildren} from 'react';
+import {SafeAreaView, StyleSheet, Text, View} from 'react-native';
 import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
-
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+  Delegate,
+  MediapipeCamera,
+  RunningMode,
+  useObjectDetection,
+} from 'react-native-mediapipe';
+import {useCameraPermission} from 'react-native-vision-camera';
 
 function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const cameraPermission = useCameraPermission();
+  const [categories, setCategories] = React.useState<string>();
+  const frameProcessor = useObjectDetection(
+    results => {
+      console.log('Detection results:', results);
+      setCategories(
+        results.results
+          .map(result =>
+            result.detections
+              .map(d => d.categories.map(c => c.categoryName).join(', '))
+              .join(', '),
+          )
+          .join(', '),
+      );
+      console.log('Detection results:', results);
+    },
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+    error => {
+      console.error(`onError: ${error}`);
+    },
+    RunningMode.LIVE_STREAM,
+    'efficientdet-lite0.tflite',
+    {delegate: Delegate.GPU},
+  );
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+    <SafeAreaView style={styles.root}>
+      {cameraPermission.hasPermission ? (
+        <View style={styles.container}>
+          <MediapipeCamera style={styles.camera} processor={frameProcessor} />
+          <Text style={styles.categoriesText}>{categories}</Text>
+          <Text style={styles.categoriesText}> running into bugs</Text>
         </View>
-      </ScrollView>
+      ) : (
+        <RequestPermissions
+          hasCameraPermission={cameraPermission.hasPermission}
+          requestCameraPermission={cameraPermission.requestPermission}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
+const RequestPermissions: React.FC<{
+  hasCameraPermission: boolean;
+  requestCameraPermission: () => Promise<boolean>;
+}> = ({hasCameraPermission, requestCameraPermission}) => {
+  console.log(hasCameraPermission);
+  return (
+    <View style={styles.container}>
+      <Text style={styles.welcome}>Welcome to React Native Mediapipe</Text>
+      <View style={styles.permissionsContainer}>
+        {!hasCameraPermission && (
+          <Text style={styles.permissionText}>
+            React Native Mediapipe needs{' '}
+            <Text style={styles.bold}>Camera permission</Text>.{' '}
+            <Text style={styles.hyperlink} onPress={requestCameraPermission}>
+              Grant
+            </Text>
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  root: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    color: 'black',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  welcome: {color: 'black', fontSize: 38, fontWeight: 'bold', maxWidth: '80%'},
+  banner: {
+    position: 'absolute',
+    opacity: 0.4,
+    bottom: 0,
+    left: 0,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  container: {
+    height: '100%',
+    width: '100%',
+    backgroundColor: 'white',
+    flexDirection: 'column',
   },
-  highlight: {
-    fontWeight: '700',
+  camera: {
+    flex: 1,
+  },
+  categoriesText: {color: 'black', fontSize: 36},
+  permissionsContainer: {
+    marginTop: 30,
+  },
+  permissionText: {
+    color: 'black',
+    fontSize: 17,
+  },
+  hyperlink: {
+    color: '#007aff',
+    fontWeight: 'bold',
+  },
+  bold: {
+    fontWeight: 'bold',
   },
 });
 
